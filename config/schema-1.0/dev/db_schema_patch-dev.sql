@@ -1,4 +1,4 @@
-INSERT IGNORE INTO schemaversion (versionnumber) values ("1.3");
+INSERT IGNORE INTO schemaversion (versionnumber) values ("3.0");
 
 ALTER TABLE `agents` 
   CHANGE COLUMN `taxonomicgroups` `taxonomicGroups` VARCHAR(900) NULL DEFAULT NULL ,
@@ -325,7 +325,14 @@ ALTER TABLE `images`
 
 ALTER TABLE `images` 
   ADD COLUMN `hashFunction` VARCHAR(45) NULL AFTER `sourceIdentifier`,
-  ADD COLUMN `hashValue` VARCHAR(45) NULL AFTER `hashFunction`;
+  ADD COLUMN `hashValue` VARCHAR(45) NULL AFTER `hashFunction`,
+  ADD COLUMN `recordID` VARCHAR(45) NULL AFTER `defaultDisplay`;
+
+ALTER TABLE `images` 
+  ADD INDEX `IX_images_recordID` (`recordID` ASC);
+  
+UPDATE images i INNER JOIN guidimages g ON i.imgid = g.imgid SET i.recordID = g.guid WHERE i.recordID IS NULL;
+
 
 ALTER TABLE `imagetagkey` 
   ADD COLUMN `resourceLink` VARCHAR(250) NULL AFTER `description_en`,
@@ -376,6 +383,15 @@ ALTER TABLE `imageprojects`
 ALTER TABLE `institutions` 
   ADD COLUMN `institutionID` VARCHAR(45) NULL AFTER `iid`;
 
+# Modify the institutions table so that some fields can hold more data
+# This is to allow extra content from GrSciColl/Index Herbariorum (e.g., multiple contacts)
+ALTER TABLE `institutions` 
+  CHANGE COLUMN `InstitutionName2` `InstitutionName2` VARCHAR(255) NULL DEFAULT NULL,
+  CHANGE COLUMN `Phone` `Phone` VARCHAR(100) NULL DEFAULT NULL,
+  CHANGE COLUMN `Contact` `Contact` VARCHAR(255) NULL DEFAULT NULL,
+  CHANGE COLUMN `Email` `Email` VARCHAR(255) NULL DEFAULT NULL,
+  CHANGE COLUMN `Notes` `Notes` VARCHAR(19500) NULL DEFAULT NULL;
+
 
 ALTER TABLE `omcollections` 
   CHANGE COLUMN `CollID` `collID` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT ,
@@ -405,7 +421,7 @@ ALTER TABLE `omcollections`
 #  ADD COLUMN `collectionGuid` TEXT NULL AFTER `aggKeysStr`;
 
 ALTER TABLE `omcollections` 
-  ADD COLUMN `recordID` TEXT NULL AFTER `aggKeysStr`;
+  ADD COLUMN `recordID` VARCHAR(45) NULL AFTER `aggKeysStr`;
 
 ALTER TABLE `omoccurdeterminations` 
   DROP FOREIGN KEY `FK_omoccurdets_idby`;
@@ -435,6 +451,39 @@ CREATE TABLE `omcollproperties` (
   CONSTRAINT `FK_omcollproperties_collid`  FOREIGN KEY (`collid`)  REFERENCES `omcollections` (`CollID`)   ON DELETE CASCADE   ON UPDATE CASCADE,
   CONSTRAINT `FK_omcollproperties_uid`   FOREIGN KEY (`modifiedUid`)   REFERENCES `users` (`uid`)   ON DELETE CASCADE   ON UPDATE CASCADE
 );
+
+
+CREATE TABLE `omcrowdsourceproject` (
+  `csProjID` INT NOT NULL AUTO_INCREMENT,
+  `title` VARCHAR(45) NOT NULL,
+  `description` VARCHAR(250) NULL,
+  `instructions` TEXT NULL,
+  `trainingurl` VARCHAR(250) NULL,
+  `managers` VARCHAR(150) NULL,
+  `criteria` VARCHAR(1500) NULL,
+  `notes` VARCHAR(250) NULL,
+  `modifiedUid` INT UNSIGNED NULL,
+  `modifiedTimestamp` DATETIME NULL,
+  `initialTimestamp` TIMESTAMP NOT NULL DEFAULT current_timestamp,
+  PRIMARY KEY (`csProjID`)
+);
+
+ALTER TABLE `omcrowdsourceproject` 
+  ADD INDEX `FK_croudsourceproj_uid_idx` (`modifiedUid` ASC) ;
+
+ALTER TABLE `omcrowdsourceproject`
+  ADD CONSTRAINT `FK_croudsourceproj_uid`  FOREIGN KEY (`modifiedUid`)  REFERENCES `users` (`uid`)  ON DELETE SET NULL  ON UPDATE CASCADE;
+
+ALTER TABLE `omcrowdsourcequeue` 
+  ADD COLUMN `csProjID` INT NULL AFTER `omcsid`,
+  ADD INDEX `FK_omcrowdsourcequeue_csProjID_idx` (`csProjID` ASC);
+
+ALTER TABLE `omcrowdsourcequeue` 
+  ADD CONSTRAINT `FK_omcrowdsourcequeue_csProjID`  FOREIGN KEY (`csProjID`)  REFERENCES `omcrowdsourceproject` (`csProjID`)  ON DELETE SET NULL  ON UPDATE CASCADE;
+
+ALTER TABLE `omcrowdsourcequeue` 
+  ADD COLUMN `dateProcessed` DATETIME NULL AFTER `isvolunteer`,
+  ADD COLUMN `dateReviewed` DATETIME NULL AFTER `dateProcessed`;
 
 
 CREATE TABLE `omoccuraccess` (
@@ -498,20 +547,34 @@ CREATE TABLE `omoccurarchive` (
   INDEX `IX_occurarchive_recordID` (`recordID` ASC),
   INDEX `FK_occurarchive_uid_idx` (`createdUid` ASC),
   UNIQUE INDEX `UQ_occurarchive_occid` (`occid` ASC),
-  CONSTRAINT `FK_occurarchive_uid` FOREIGN KEY (`createdUid`)  REFERENCES `users` (`uid`)  ON DELETE RESTRICT  ON UPDATE CASCADE);
+  CONSTRAINT `FK_occurarchive_uid` FOREIGN KEY (`createdUid`)  REFERENCES `users` (`uid`)  ON DELETE RESTRICT  ON UPDATE CASCADE
+);
 
 INSERT INTO omoccurarchive(archiveObj, occid, recordID)
 SELECT archiveObj, occid, guid FROM guidoccurrences WHERE archiveObj IS NOT NULL;
 
 UPDATE omoccurarchive SET occid = SUBSTRING_INDEX(SUBSTRING(archiveObj, 11), '"', 1) WHERE occid IS NULL;
 
+ALTER TABLE `omoccurassociations` 
+  ADD COLUMN `relationshipID` VARCHAR(45) NULL COMMENT 'dwc:relationshipOfResourceID (e.g. ontology link)' AFTER `relationship`,
+  ADD COLUMN `accordingTo` VARCHAR(45) NULL COMMENT 'dwc:relationshipAccordingTo (verbatim text)' AFTER `notes`,
+  ADD COLUMN `sourceIdentifier` VARCHAR(45) NULL COMMENT 'dwc:resourceRelationshipID, if association was defined externally ' AFTER `accordingTo`,
+  ADD COLUMN `recordID` VARCHAR(45) NULL COMMENT 'dwc:resourceRelationshipID, if association was defined internally ' AFTER `sourceIdentifier`,
+  CHANGE COLUMN `condition` `conditionOfAssociate` VARCHAR(250) NULL DEFAULT NULL,
+  CHANGE COLUMN `relationship` `relationship` VARCHAR(150) NOT NULL COMMENT 'dwc:relationshipOfResource',
+  CHANGE COLUMN `identifier` `identifier` VARCHAR(250) NULL DEFAULT NULL COMMENT 'dwc:relatedResourceID (object identifier)',
+  CHANGE COLUMN `resourceUrl` `resourceUrl` VARCHAR(250) NULL DEFAULT NULL COMMENT 'link to resource',
+  CHANGE COLUMN `dateEmerged` `establishedDate` DATETIME NULL DEFAULT NULL COMMENT 'dwc:relationshipEstablishedDate',
+  CHANGE COLUMN `notes` `notes` VARCHAR(250) NULL DEFAULT NULL COMMENT 'dwc:relationshipRemarks';
+  
 
 ALTER TABLE `omoccurdatasets` 
   CHANGE COLUMN `datasetid` `datasetID` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT ,
   ADD COLUMN `datasetIdentifier` VARCHAR(150) NULL AFTER `description`,
   ADD COLUMN `datasetName` VARCHAR(150) NULL AFTER `datasetID`,
   ADD COLUMN `bibliographicCitation` VARCHAR(500) NULL AFTER `datasetName`,
-  CHANGE COLUMN `sortsequence` `sortSequence` INT(11) NULL DEFAULT NULL ,
+  ADD COLUMN `dynamicProperties` TEXT NULL DEFAULT NULL AFTER `notes`,
+  CHANGE COLUMN `sortsequence` `sortSequence` INT(11) NULL DEFAULT NULL,
   CHANGE COLUMN `initialtimestamp` `initialTimestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP() ;
 
 
@@ -532,7 +595,6 @@ ALTER TABLE `omoccurdeterminations`
   ADD COLUMN `recordID` VARCHAR(45) NULL AFTER `sortSequence`,
   CHANGE COLUMN `identifiedBy` `identifiedBy` VARCHAR(255) NOT NULL DEFAULT '' ,
   CHANGE COLUMN `dateIdentified` `dateIdentified` VARCHAR(45) NOT NULL DEFAULT '' ,
-  CHANGE COLUMN `sourceIdentifier` `identificationID` VARCHAR(45) NULL DEFAULT NULL ,
   ADD INDEX `FK_omoccurdets_agentID_idx` (`identifiedByAgentID` ASC);
 
 ALTER TABLE `omoccurdeterminations` 
@@ -556,8 +618,12 @@ ALTER TABLE `omoccurdeterminations`
   ADD CONSTRAINT `FK_omoccurdets_uid`  FOREIGN KEY (`enteredByUid`)  REFERENCES `users` (`uid`)  ON DELETE SET NULL  ON UPDATE CASCADE;
 
 ALTER TABLE `omoccurdeterminations` 
+  ADD INDEX `IX_omoccurdets_recordID` (`recordID` ASC),
   ADD INDEX `FK_omoccurdets_dateModified` (`dateLastModified` ASC),
   ADD INDEX `FK_omoccurdets_initialTimestamp` (`initialTimestamp` ASC);
+  
+UPDATE omoccurdeterminations d INNER JOIN guidoccurdeterminations g ON d.detid = g.detid SET d.recordID = g.guid WHERE d.recordID IS NULL;
+
 
 INSERT IGNORE INTO omoccurdeterminations(occid, identifiedBy, dateIdentified, family, sciname, verbatimIdentification, scientificNameAuthorship, tidInterpreted, 
 identificationQualifier, genus, specificEpithet, verbatimTaxonRank, infraSpecificEpithet, isCurrent, identificationReferences, identificationRemarks, 
@@ -622,50 +688,24 @@ ALTER TABLE `omoccuridentifiers`
   ADD INDEX `IX_omoccuridentifiers_value` (`identifiervalue` ASC);
 
 
-CREATE TABLE `omcrowdsourceproject` (
-  `csProjID` INT NOT NULL AUTO_INCREMENT,
-  `title` VARCHAR(45) NOT NULL,
-  `description` VARCHAR(250) NULL,
-  `instructions` TEXT NULL,
-  `trainingurl` VARCHAR(250) NULL,
-  `managers` VARCHAR(150) NULL,
-  `criteria` VARCHAR(1500) NULL,
-  `notes` VARCHAR(250) NULL,
-  `modifiedUid` INT UNSIGNED NULL,
-  `modifiedTimestamp` DATETIME NULL,
-  `initialTimestamp` TIMESTAMP NOT NULL DEFAULT current_timestamp,
-  PRIMARY KEY (`csProjID`));
+# Table for correspondance attachments for loans/exchanges/gifts etc.
+CREATE TABLE `omoccurloansattachment` (
+  `attachmentid` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `loanid` int(10) UNSIGNED DEFAULT NULL,
+  `exchangeid` int(10) UNSIGNED DEFAULT NULL,
+  `title` varchar(80) NOT NULL,
+  `path` varchar(255) NOT NULL,
+  `filename` varchar(255) NOT NULL,
+  `initialTimestamp` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`attachmentid`),
+  KEY `FK_occurloansattachment_loanid_idx` (`loanid`),
+  KEY `FK_occurloansattachment_exchangeid_idx` (`exchangeid`)
+);
 
-ALTER TABLE `omcrowdsourceproject` 
-  ADD INDEX `FK_croudsourceproj_uid_idx` (`modifiedUid` ASC) ;
+ALTER TABLE `omoccurloansattachment`
+  ADD CONSTRAINT `FK_occurloansattachment_exchangeid` FOREIGN KEY (`exchangeid`) REFERENCES `omoccurexchange` (`exchangeid`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `FK_occurloansattachment_loanid` FOREIGN KEY (`loanid`) REFERENCES `omoccurloans` (`loanid`) ON DELETE CASCADE ON UPDATE CASCADE;
 
-ALTER TABLE `omcrowdsourceproject`
-  ADD CONSTRAINT `FK_croudsourceproj_uid`  FOREIGN KEY (`modifiedUid`)  REFERENCES `users` (`uid`)  ON DELETE SET NULL  ON UPDATE CASCADE;
-
-ALTER TABLE `omcrowdsourcequeue` 
-  ADD COLUMN `csProjID` INT NULL AFTER `omcsid`,
-  ADD INDEX `FK_omcrowdsourcequeue_csProjID_idx` (`csProjID` ASC);
-
-ALTER TABLE `omcrowdsourcequeue` 
-  ADD CONSTRAINT `FK_omcrowdsourcequeue_csProjID`  FOREIGN KEY (`csProjID`)  REFERENCES `omcrowdsourceproject` (`csProjID`)  ON DELETE SET NULL  ON UPDATE CASCADE;
-
-ALTER TABLE `omcrowdsourcequeue` 
-  ADD COLUMN `dateProcessed` DATETIME NULL AFTER `isvolunteer`,
-  ADD COLUMN `dateReviewed` DATETIME NULL AFTER `dateProcessed`;
-
-
-ALTER TABLE `omoccurassociations` 
-  ADD COLUMN `relationshipID` VARCHAR(45) NULL COMMENT 'dwc:relationshipOfResourceID (e.g. ontology link)' AFTER `relationship`,
-  ADD COLUMN `accordingTo` VARCHAR(45) NULL COMMENT 'dwc:relationshipAccordingTo (verbatim text)' AFTER `notes`,
-  ADD COLUMN `sourceIdentifier` VARCHAR(45) NULL COMMENT 'dwc:resourceRelationshipID, if association was defined externally ' AFTER `accordingTo`,
-  ADD COLUMN `recordID` VARCHAR(45) NULL COMMENT 'dwc:resourceRelationshipID, if association was defined internally ' AFTER `sourceIdentifier`,
-  CHANGE COLUMN `condition` `conditionOfAssociate` VARCHAR(250) NULL DEFAULT NULL,
-  CHANGE COLUMN `relationship` `relationship` VARCHAR(150) NOT NULL COMMENT 'dwc:relationshipOfResource',
-  CHANGE COLUMN `identifier` `identifier` VARCHAR(250) NULL DEFAULT NULL COMMENT 'dwc:relatedResourceID (object identifier)',
-  CHANGE COLUMN `resourceUrl` `resourceUrl` VARCHAR(250) NULL DEFAULT NULL COMMENT 'link to resource',
-  CHANGE COLUMN `dateEmerged` `establishedDate` DATETIME NULL DEFAULT NULL COMMENT 'dwc:relationshipEstablishedDate',
-  CHANGE COLUMN `notes` `notes` VARCHAR(250) NULL DEFAULT NULL COMMENT 'dwc:relationshipRemarks';
-  
 
 ALTER TABLE `omoccurrences` 
   DROP FOREIGN KEY `FK_omoccurrences_recbyid`;
@@ -693,6 +733,9 @@ ALTER TABLE `omoccurrences`
   CHANGE COLUMN `processingstatus` `processingStatus` VARCHAR(45) NULL DEFAULT NULL ;
 
 UPDATE omoccurrences o INNER JOIN guidoccurrences g ON o.occid = g.occid SET o.recordID = g.guid WHERE o.recordID IS NULL;
+
+ALTER TABLE `omoccurrences` 
+  ADD INDEX `IX_omoccurrences_recordID` (`recordID` ASC);
 
 ALTER TABLE `omoccurrences` 
   ADD CONSTRAINT `FK_omoccurrences_tid`  FOREIGN KEY (`tidInterpreted`)  REFERENCES `taxa` (`tid`)  ON DELETE SET NULL  ON UPDATE CASCADE,
@@ -734,7 +777,7 @@ CREATE TABLE `portalpublications` (
   `criteriaJson` text DEFAULT NULL,
   `includeDeterminations` int(11) DEFAULT 1,
   `includeImages` int(11) DEFAULT 1,
-  `autoUpdate` int(11) DEFAULT 0,
+  `autoUpdate` int(11) DEFAULT 1,
   `lastDateUpdate` datetime DEFAULT NULL,
   `updateInterval` int(11) DEFAULT NULL,
   `createdUid` int(10) unsigned DEFAULT NULL,
@@ -935,7 +978,12 @@ ALTER TABLE `users`
   CHANGE COLUMN `validated` `validated` INT NOT NULL DEFAULT 0 ,
   CHANGE COLUMN `InitialTimeStamp` `initialTimestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP() ;
 
-
+ALTER TABLE `users` 
+  ADD UNIQUE INDEX `UQ_users_username` (`username` ASC);
+  
+ALTER TABLE `users` 
+  RENAME INDEX `Index_email` TO `IX_users_email`;
+  
 UPDATE users u INNER JOIN userlogin l ON u.uid = l.uid
 SET u.username = l.username, u.password = l.password, u.lastLoginDate = l.lastlogindate
 WHERE u.username IS NULL;
@@ -980,10 +1028,23 @@ CREATE TABLE `ommaterialsample` (
   INDEX `FK_ommatsample_occid_idx` (`occid` ASC),
   INDEX `FK_ommatsample_prepUid_idx` (`preparedByUid` ASC),
   CONSTRAINT `FK_ommatsample_occid` FOREIGN KEY (`occid`)   REFERENCES `omoccurrences` (`occid`)   ON DELETE CASCADE  ON UPDATE CASCADE,
-  CONSTRAINT `FK_ommatsample_prepUid`   FOREIGN KEY (`preparedByUid`)   REFERENCES `users` (`uid`)   ON DELETE CASCADE  ON UPDATE CASCADE);
+  CONSTRAINT `FK_ommatsample_prepUid`   FOREIGN KEY (`preparedByUid`)   REFERENCES `users` (`uid`)   ON DELETE CASCADE  ON UPDATE CASCADE
+);
 
 ALTER TABLE `ommaterialsample`
   ADD UNIQUE INDEX `UQ_ommatsample_recordID` (`recordID`);
+
+# If following ALTER TABLE statement fails, run query below to identify records with duplicate material sample catalogNumbers for a given occurrence record. 
+# Catalog numbers need to be unique for each occurrence, thus duplicate records need to be removed.  
+# FIX: SELECT occid, catalogNumber, count(*) as cnt FROM ommaterialsample WHERE catalogNumber IS NOT NULL GROUP BY occid, catalogNumber HAVING cnt > 1;
+ALTER TABLE `ommaterialsample`
+  ADD UNIQUE INDEX `UQ_ommatsample_catNum` (`occid`, `catalogNumber`);
+
+# If following ALTER TABLE statement fails, run query below to identify records with duplicate material sample guid values for a given occurrence record. GUIDs need to be unique for each occurrence. The duplicate records need to be removed.  
+# FIX: SELECT occid, guid, count(*) as cnt FROM ommaterialsample WHERE guid IS NOT NULL GROUP BY occid, guid HAVING cnt > 1;
+ALTER TABLE `ommaterialsample`
+  ADD UNIQUE INDEX `UQ_ommatsample_guid` (`occid`, `guid`);
+
 
 INSERT INTO ctcontrolvocab(title,tableName,fieldName, limitToList)
   VALUES("Material Sample Type","ommaterialsample","sampleType",1);
@@ -1046,7 +1107,8 @@ CREATE TABLE `ommaterialsampleextended` (
   INDEX `FK_matsampleextend_matSampleID_idx` (`matSampleID` ASC),
   INDEX `IX_matsampleextend_fieldName` (`fieldName` ASC),
   INDEX `IX_matsampleextend_fieldValue` (`fieldValue` ASC),
-  CONSTRAINT `FK_matsampleextend_matSampleID`  FOREIGN KEY (`matSampleID`)   REFERENCES `ommaterialsample` (`matSampleID`)   ON DELETE CASCADE   ON UPDATE CASCADE);
+  CONSTRAINT `FK_matsampleextend_matSampleID`  FOREIGN KEY (`matSampleID`)   REFERENCES `ommaterialsample` (`matSampleID`)   ON DELETE CASCADE   ON UPDATE CASCADE
+);
 
 
 INSERT INTO ctcontrolvocab(title,tableName,fieldName, limitToList)
@@ -1070,29 +1132,3 @@ INSERT INTO ctcontrolvocabterm(cvID, term, resourceUrl, activeStatus) SELECT cvI
 INSERT INTO ctcontrolvocabterm(cvID, term, resourceUrl, activeStatus) SELECT cvID, "poolDnaExtracts", "http://gensc.org/ns/mixs/pool_dna_extracts", 1 FROM ctcontrolvocab WHERE tableName = "ommaterialsampleextended" AND fieldName = "fieldName";
 INSERT INTO ctcontrolvocabterm(cvID, term, resourceUrl, activeStatus) SELECT cvID, "sampleDesignation", "http://data.ggbn.org/schemas/ggbn/terms/sampleDesignation", 1 FROM ctcontrolvocab WHERE tableName = "ommaterialsampleextended" AND fieldName = "fieldName";
 
-# Table for correspondance attachments for loans/exchanges/gifts etc.
-CREATE TABLE `omoccurloansattachment` (
-  `attachmentid` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `loanid` int(10) UNSIGNED DEFAULT NULL,
-  `exchangeid` int(10) UNSIGNED DEFAULT NULL,
-  `title` varchar(80) NOT NULL,
-  `path` varchar(255) NOT NULL,
-  `filename` varchar(255) NOT NULL,
-  `initialTimestamp` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`attachmentid`),
-  KEY `FK_occurloansattachment_loanid_idx` (`loanid`),
-  KEY `FK_occurloansattachment_exchangeid_idx` (`exchangeid`)
-) ;
-
-ALTER TABLE `omoccurloansattachment`
-  ADD CONSTRAINT `FK_occurloansattachment_exchangeid` FOREIGN KEY (`exchangeid`) REFERENCES `omoccurexchange` (`exchangeid`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `FK_occurloansattachment_loanid` FOREIGN KEY (`loanid`) REFERENCES `omoccurloans` (`loanid`) ON DELETE CASCADE ON UPDATE CASCADE;
-
-# Modify the institutions table so that some fields can hold more data
-# This is to allow extra content from GrSciColl/Index Herbariorum (e.g., multiple contacts)
-ALTER TABLE `institutions` 
-  CHANGE COLUMN `InstitutionName2` `InstitutionName2` VARCHAR(255) NULL DEFAULT NULL,
-  CHANGE COLUMN `Phone` `Phone` VARCHAR(100) NULL DEFAULT NULL,
-  CHANGE COLUMN `Contact` `Contact` VARCHAR(255) NULL DEFAULT NULL,
-  CHANGE COLUMN `Email` `Email` VARCHAR(255) NULL DEFAULT NULL,
-  CHANGE COLUMN `Notes` `Notes` VARCHAR(19500) NULL DEFAULT NULL;
