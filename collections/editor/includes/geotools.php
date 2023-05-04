@@ -21,8 +21,8 @@ else include_once($SERVER_ROOT.'/content/lang/collections/editor/includes/geotoo
 			<input id="lngmin" style="width:50px;" title="<?php echo $LANG['LONG_MIN']; ?>" />'
 			<input id="lngsec" style="width:50px;" title="<?php echo $LANG['LONG_SEC']; ?>" />&quot;
 			<select id="lngew">
-				<option><?php echo $LANG['E']; ?></option>
-				<option SELECTED><?php echo $LANG['W']; ?></option>
+				<option SELECTED><?php echo $LANG['E']; ?></option>
+				<option><?php echo $LANG['W']; ?></option>
 			</select>
 		</div>
 		<div style="margin:5px;">
