@@ -19,7 +19,7 @@ header('Content-Type: text/html; charset=' . $CHARSET);
 	<div class="navpath"></div>
 	<div id="innertext">
 		<div class="lang en">
-			<h1>Welcome to Open Herarium</h1>
+			<h1>Welcome to Open Herbarium</h1>
                         <p>OpenHerbarium integrates and displays information about plants, fungi, and algae, the organisms preserved in herbaria. Its core resource are specimen records from contributing herbaria,
 			but these are made more valuable by integrating them with images, descriptions, identification keys and environmental data. It is this integration that makes OpenHerbarium a valuable resource for different kinds
 			of users. It is made possible by Symbiota, the software running the site.
@@ -33,10 +33,7 @@ header('Content-Type: text/html; charset=' . $CHARSET);
 			missing, or if you have questions about the treatment of a name, email Mary Barkworth describing the problem.
 			</p>
 			<p>
-			Other questions? Contact Mary Barkworth.
-			</p>
-			<p>
-			Site managed by Mary Barkworth (Utah State University) and Evin Dunn (Northern Arizona University).
+			Other questions? Contact <a href="mailto:Mary.Barkworth@usu.edu">Mary Barkworth</a>.
 			</p>
 			<p>
 			We thank GBIF and the Biodiversity Information Fund for Asia for funding recent improvements to OpenHerbarium, ASU BioKIC Services for hosting the site, and the US National Science Foundation for funding further development of Symbiota through NSF201705.
