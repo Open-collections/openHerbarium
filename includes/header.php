@@ -41,7 +41,7 @@ else include_once($SERVER_ROOT.'/content/lang/header.'.$LANG_TAG.'.php');
 				</a>
 				<div class="brand-name">
 					<h1>Open Herbarium</h1>
-					<h2>An Open Vascular Plant Herbarium Network</h2>
+					<h2>An Open Herbarium Network</h2>
 				</div>
 			</div>
 		</div>
