@@ -144,8 +144,8 @@ class DwcArchiverOccurrence extends Manager{
 		$this->occurDefArr['fields']['sex'] = 'o.sex';
 		$this->occurDefArr['terms']['individualCount'] = 'http://rs.tdwg.org/dwc/terms/individualCount';
 		$this->occurDefArr['fields']['individualCount'] = 'CASE WHEN o.individualCount REGEXP("(^[0-9]+$)") THEN o.individualCount ELSE NULL END AS individualCount';
-		//$this->occurDefArr['terms']['samplingProtocol'] = 'http://rs.tdwg.org/dwc/terms/samplingProtocol';
-		//$this->occurDefArr['fields']['samplingProtocol'] = 'o.samplingProtocol';
+		$this->occurDefArr['terms']['samplingProtocol'] = 'http://rs.tdwg.org/dwc/terms/samplingProtocol';
+		$this->occurDefArr['fields']['samplingProtocol'] = 'o.samplingProtocol';
 		//$this->occurDefArr['terms']['samplingEffort'] = 'http://rs.tdwg.org/dwc/terms/samplingEffort';
 		//$this->occurDefArr['fields']['samplingEffort'] = 'o.samplingEffort';
 		$this->occurDefArr['terms']['preparations'] = 'http://rs.tdwg.org/dwc/terms/preparations';
@@ -576,7 +576,7 @@ class DwcArchiverOccurrence extends Manager{
 
 	public function appendUpperTaxonomy2(&$r){
 		$target = (isset($r['taxonID'])?$r['taxonID']:false);
-		if(!$target) $target = ucfirst($r['family']);
+		if(!$target && !empty($r['family'])) $target = ucfirst($r['family']);
 		if($target){
 			if(array_key_exists($target, $this->upperTaxonomy)){
 				if(isset($this->upperTaxonomy[$target]['k'])) $r['t_kingdom'] = $this->upperTaxonomy[$target]['k'];
