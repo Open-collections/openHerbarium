@@ -2,12 +2,3 @@
 Place your CSS customizations here.
 This stylesheet is defined last and will override all previously loaded sheets. You may reference variables defined in variables.css 
  */
-
-/* JQUERY UI modifications */
-.ui-tabs-panel {
-  font-size: 1.5rem;
-}
-
-.ui-tabs-tab {
-  font-size: 1.5rem;
-}
