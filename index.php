@@ -40,16 +40,17 @@ header('Content-Type: text/html; charset=' . $CHARSET);
 			Questions? Contact <a href="mailto:Mary.Barkworth@usu.edu">Mary Barkworth</a>.
 			</p>
 			<p>
-			We thank the <a href="https://symbiota.org/contact-the-support-hub/" target="_blank">Symbiota team</a>  
+			We thank the <a href="https://symbiota.org/contact-the-support-hub/" target="_blank">Symbiota Support Hub</a>  
 			and <a href="https://www.gbif.org/" target="_blank">GBIF</a> 
-			for assistance in developing and maintaining OpenHerbarium, 
-			<a href="https://services.biokic.asu.edu/" target="_blank">ASU BioKIC Services</a> 
-			for hosting the site, and the U.S. National Science Foundation for funding further development of Symbiota through multiple awards.
+			for assistance in developing and maintaining OpenHerbarium, and the U.S. National Science Foundation for funding further development of Symbiota through multiple awards.
 			</p>
 		</div>
 		</main>
-	<?php
-	include($SERVER_ROOT . '/includes/footer.php');
-	?>
+        <?php if($GLOBALS['DONATE_LINK'] && file_exists($SERVER_ROOT . '/includes/donationButton.php')): ?>
+                <?php include($SERVER_ROOT . '/includes/donationButton.php') ?>
+        <?php endif ?>
+        <?php
+        include($SERVER_ROOT . '/includes/footer.php');
+        ?>
 </body>
 </html>
