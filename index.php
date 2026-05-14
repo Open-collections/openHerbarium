@@ -30,13 +30,11 @@ header('Content-Type: text/html; charset=' . $CHARSET);
 			contact Mary Barkworth (see below). To add a herbarium, the person in charge should write to Mary asking for an application form.
 			</p>
 			<p>
-			The nomenclatural backbone for OpenHerbarium is developed from floras, <a href="https://powo.science.kew.org/" target="_blank">Plants of the World Online</a> (Seed Plants), 
-			<a href="https://www.pteridoportal.org/portal/index.php" target="_blank">Pteridoportal</a> (Pteridophytes), 
-			<a href="https://www.tropicos.org/home" target="_blank">Tropicos</a> (bryophytes),
-			<a href="https://www.indexfungorum.org/names/names.asp" target="_blank">Index fungorum</a> (fungi, including lichens), 
-			and <a href="https://ipni.org/" target="_blank">IPNI</a> (nomenclature of vascular plants). 
-			The family treatment for seed plants is <a href="https://academic.oup.com/botlinnean/article/181/1/1/2416499" target="_blank>APGIV</a>. 
-			If a name is missing, or if you have questions about the treatment of a name, email Mary Barkworth describing the problem.
+			The nomenclatural backbone for OpenHerbarium is developed from <a href="https://powo.science.kew.org/" target="_blank">Plants of the World Online</a> (Seed Plants), 
+			<a href="https://www.pteridoportal.org/portal/index.php" target="_blank">Pteridoportal</a> (Pteridophytes), <a href="https://www.catalogueoflife.org/" target="_blank">Catalogue of Life</a> (Bryophytes), 
+			<a href="https://www.indexfungorum.org/" target="_blank">Index fungorum</a> (fungi, including lichens), 
+			<a href="https://www.catalogueoflife.org/" target="_blank">Catalogue of Life</a> (Algae). 
+			For all groups, the <a href="https://ipni.org/" target="_blank">International Plant Names Index</a> is consulted when nomenclatural issues arise. 
 			</p>
 			<p>
 			Questions? Contact <a href="mailto:Mary.Barkworth@usu.edu">Mary Barkworth</a>.
